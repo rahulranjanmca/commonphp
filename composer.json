@@ -1,0 +1,6 @@
+{
+    "name": "canigenus/commonphp",
+    "description": "commonphp",
+    "minimum-stability": "dev",
+    "require": {}
+}
