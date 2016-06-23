@@ -3,5 +3,5 @@
     "description": "commonphp",
     "minimum-stability": "dev",
     "require": {}
-   
+     "minimum-stability": "stable"
 }
