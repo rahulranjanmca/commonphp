@@ -3,6 +3,5 @@
     "description": "commonphp",
     "minimum-stability": "dev",
     "require": {},
-     "minimum-stability": "stable",
-      "license": "MIT"
+    "license": "MIT"
 }
