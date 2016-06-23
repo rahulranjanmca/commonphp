@@ -3,4 +3,6 @@
     "description": "commonphp",
     "minimum-stability": "dev",
     "require": {}
+    "version": "1.0.0"
+    
 }
