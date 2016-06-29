@@ -1,5 +1,6 @@
 <?php
-class ServiceInterfaceImpl implements ServiceInterface {
+namespace Canigenus\CommonPhp\Services;
+class AbstractServiceImpl implements ServiceInterface {
 	
 	protected $repository;
 	
@@ -25,9 +26,9 @@ class ServiceInterfaceImpl implements ServiceInterface {
 	public function getEntityByKeyAndValue($field, $value, $columns = array('*')) {
 		return $this->repository->getEntityByKeyAndValue($field, $value,$columns);
 	}
-	public function get($field, $value, $columns = array('*')) {
+	/* public function get($field, $value, $columns = array('*')) {
 		return $this->repository->get($field, $value,$columns);
-	}
+	} */
 	public function get($id){
 		return $this->repository->get($id);
 	}

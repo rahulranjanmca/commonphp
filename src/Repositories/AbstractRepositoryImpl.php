@@ -1,4 +1,6 @@
 <?php
+namespace Canigenus\CommonPhp\Repositories;
+
 class AbstractRepositoryImpl  implements RepositoryInterface {
 	
 	
@@ -9,10 +11,10 @@ class AbstractRepositoryImpl  implements RepositoryInterface {
 	 */
 	protected $model;
 	
-	public function __construct(Model $model)
+	/* public function __construct(Model $model)
 	{
 		$this->model = $model;
-	}
+	} */
 	
 
 	/**
@@ -82,9 +84,7 @@ class AbstractRepositoryImpl  implements RepositoryInterface {
 	public function getEntityByKeyAndValue($field, $value, $columns = array('*')) {
 		return $this->repository->getEntityByKeyAndValue($field, $value,$columns);
 	}
-	public function get($field, $value, $columns = array('*')) {
-		return $this->repository->get($field, $value,$columns);
-	}
+	
 	public function get($id){
 		$this->unsetClauses();
 		$this->newQuery()->eagerLoad();

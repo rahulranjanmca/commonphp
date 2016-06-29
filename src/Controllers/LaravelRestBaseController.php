@@ -1,4 +1,5 @@
 <?php
+namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 class LaravelRestBaseController  extends Controller {
 	
@@ -49,7 +50,7 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function show($id)
 	{
-		return $this->service->get($id);
+		return response($this->service->get($id));
 	}
 	
 	/**
