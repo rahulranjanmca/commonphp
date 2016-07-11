@@ -3,7 +3,7 @@ namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class LaravelRestBaseController  extends Controller {
+abstract class LaravelBaseController  extends Controller {
 	
 	protected  $service;
 	
@@ -41,7 +41,8 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function store(Request $request)
 	{
-		return response($this->service->save($request->all()),200);
+		$this->service->save($request->all());
+		return view('search');
 	}
 	
 	/**
@@ -53,6 +54,7 @@ class LaravelRestBaseController  extends Controller {
 	public function show($id)
 	{
 		return response($this->service->get($id));
+		return view('edit');
 	}
 	
 	/**
@@ -88,6 +90,8 @@ class LaravelRestBaseController  extends Controller {
 	{
 		return $this->service->delete($id);
 	}
+	
+	
 	
 	
 }
