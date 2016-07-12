@@ -1,7 +1,7 @@
 <?php
 namespace Canigenus\CommonPhp\Repositories;
 
-class AbstractRepositoryImpl  implements RepositoryInterface {
+abstract class AbstractRepositoryImpl  implements RepositoryInterface {
 	
 	
 	/**
@@ -61,15 +61,19 @@ class AbstractRepositoryImpl  implements RepositoryInterface {
 	protected $scopes = array();
 	
 	
-	public function getList($criteria, $perPage = 15, $columns = array('*')) {
-		return $this->repository->getList($criteria,$perPage, $columns);
+	public function getList($criterias, $perPage = 15, $columns = array('*')) {
+		$this->unsetClauses();
+		$this->newQuery();
+		$this->setCriteria($criterias);
+		return $this->query->get($columns);
 	}
 	public function save($entity) {
 		$this->unsetClauses();
-		return $this->model->create($data);
+		return $this->model->create($entity);
 	}
 	public function update($entity) {
 		$this->unsetClauses();
+		$this->newQuery();
 		$model = $this->getById($id);
 		$model->update($data);
 		return $model;
@@ -82,7 +86,8 @@ class AbstractRepositoryImpl  implements RepositoryInterface {
 		return $this->repository->getPartialEntity($id,$columns);
 	}
 	public function getEntityByKeyAndValue($field, $value, $columns = array('*')) {
-		return $this->repository->getEntityByKeyAndValue($field, $value,$columns);
+		$this->unsetClauses();
+		return $this->query->where($field, '=', $value)->first($columns);
 	}
 	
 	public function get($id){
@@ -209,4 +214,5 @@ class AbstractRepositoryImpl  implements RepositoryInterface {
 		return $this;
 	}
 	
+	public abstract function setCriteria($entity);
 }
