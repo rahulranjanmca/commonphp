@@ -3,7 +3,7 @@ namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-abstract class LaravelBaseController  extends Controller {
+abstract class LaravelMultiTenantBaseController  extends Controller {
 	
 	protected  $service;
 	
@@ -18,7 +18,7 @@ abstract class LaravelBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index(Request $request)
+	public function index($clientId, Request $request)
 	{
 	return $this->service->getList($criteria,2);
 	}
@@ -39,7 +39,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  \Illuminate\Http\Request  $request
 	 * @return \Illuminate\Http\Response
 	 */
-	public function store(Request $request)
+	public function store($clientId, Request $request)
 	{
 		$this->service->save($request->all());
 		return view('search');
@@ -51,7 +51,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function show($id)
+	public function show($clientId, $id)
 	{
 		return response($this->service->get($id));
 		return view('edit');
@@ -63,7 +63,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function edit($id)
+	public function edit($clientId, $id)
 	{
 		return $this->service->get($id);
 	}
@@ -75,7 +75,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function update(Request $request, $id)
+	public function update($clientId, Request $request, $id)
 	{
 		return $this->service->update($entity);
 	}
@@ -86,7 +86,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function destroy($id)
+	public function destroy($clientId, $id)
 	{
 		return $this->service->delete($id);
 	}
