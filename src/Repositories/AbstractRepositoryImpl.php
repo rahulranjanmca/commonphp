@@ -65,7 +65,7 @@ abstract class AbstractRepositoryImpl  implements RepositoryInterface {
 		$this->unsetClauses();
 		$this->newQuery();
 		$this->setCriteria($criterias);
-		return $this->query->get($columns);
+	   return $this->query->paginate($perPage,$columns);
 	}
 	public function save($entity) {
 		$this->unsetClauses();
