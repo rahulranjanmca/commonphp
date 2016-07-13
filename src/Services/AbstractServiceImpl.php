@@ -1,5 +1,6 @@
 <?php
 namespace Canigenus\CommonPhp\Services;
+use Canigenus\CommonPhp\Repositories\RepositoryInterface;
 class AbstractServiceImpl implements ServiceInterface {
 	
 	protected $repository;
@@ -14,8 +15,8 @@ class AbstractServiceImpl implements ServiceInterface {
 	public function save($entity) {
 		return $this->repository->save($entity);
 	}
-	public function update($entity) {
-		return $this->repository->update($entity);
+	public function update($id, $entity) {
+		return $this->repository->update($id, $entity);
 	}
 	public function delete($id) {
 		return $this->repository->delete($id);

@@ -65,18 +65,19 @@ abstract class AbstractRepositoryImpl  implements RepositoryInterface {
 		$this->unsetClauses();
 		$this->newQuery();
 		$this->setCriteria($criterias);
-	   return $this->query->paginate($perPage,$columns);
+		return $this->query->paginate($perPage,$columns);
 	}
 	public function save($entity) {
 		$this->unsetClauses();
 		return $this->model->create($entity);
 	}
-	public function update($entity) {
+	public function update($id, $entity) {
 		$this->unsetClauses();
-		$this->newQuery();
-		$model = $this->getById($id);
-		$model->update($data);
-		return $model;
+		$this->newQuery()->eagerLoad();
+		$existingEntity=$this->query->findOrFail($id);
+		$existingEntity->fill($entity);
+		$existingEntity->save();
+		return $existingEntity;
 	}
 	public function delete($id) {
 		$this->unsetClauses();
@@ -93,7 +94,7 @@ abstract class AbstractRepositoryImpl  implements RepositoryInterface {
 	public function get($id){
 		$this->unsetClauses();
 		$this->newQuery()->eagerLoad();
-		return $this->query->findOrFail($id);
+		return ($this->query->findOrFail($id));
 	}
 	
 	

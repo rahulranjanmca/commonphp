@@ -2,14 +2,33 @@
 namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Canigenus\CommonPhp\Services\ServiceInterface;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
 
 abstract class LaravelMultiTenantBaseController  extends Controller {
 	
 	protected  $service;
 	
-	public function __construct(ServiceInterface $serviceInterface)
+	public function __construct(ServiceInterface $serviceInterface,$editViewName,$searchViewName,$modelName,$validations)
 	{
 		$this->service = $serviceInterface;
+		$this-> editViewName=$editViewName;
+		$this-> searchViewName=$searchViewName;
+		$this-> modelName=$modelName;
+		$this-> validations=$validations;
+		$this->service = $serviceInterface;
+	}
+	
+	/**
+	 * Display a listing of the resource.
+	 *
+	 * @return \Illuminate\Http\Response
+	 */
+	public function search($clientId, Request $request)
+	{
+		$searchCriteria=[];
+		return view($this->searchViewName,compact('clientId','searchCriteria'));
 	}
 	
 		
@@ -20,7 +39,11 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function index($clientId, Request $request)
 	{
-	return $this->service->getList($criteria,2);
+	$request->merge(['clientId'=>$clientId]);
+	$items= $this->service->getList($request->all(),2);
+	$items->appends($request->except(array('page','clientId')));
+	$searchCriteria=$request->except(array('page','clientId'));
+	return view($this->searchViewName,compact('items','clientId','searchCriteria'));
 	}
 	
 	/**
@@ -28,9 +51,9 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function create()
+	public function create($clientId)
 	{
-		return null;
+		return view($this->editViewName,compact('clientId'));
 	}
 	
 	/**
@@ -41,8 +64,24 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function store($clientId, Request $request)
 	{
+		$valid=  Validator::make($request->all(), $this->validations);
+		if($valid->fails())
+		{
+			return redirect()
+			->back()
+			->withInput($request->all())
+			->withErrors($valid->errors());
+		}
+		$this->processRequestBeforeSaveOrUpdate($request);
+		$request->merge(['clientId'=>$clientId]);
 		$this->service->save($request->all());
-		return view('search');
+		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
+		return view($this->editViewName, compact("clientId"));
+	}
+	
+	public function processRequestBeforeSaveOrUpdate(Request $request){
+	}
+	public function processResponseBeforeView(Model $response){
 	}
 	
 	/**
@@ -53,8 +92,9 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function show($clientId, $id)
 	{
-		return response($this->service->get($id));
-		return view('edit');
+		$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item'));
 	}
 	
 	/**
@@ -65,7 +105,9 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function edit($clientId, $id)
 	{
-		return $this->service->get($id);
+		$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		return view($this->editViewName, compact('item', 'clientId'));
 	}
 	
 	/**
@@ -75,9 +117,24 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function update($clientId, Request $request, $id)
+	public function update($clientId,$id, Request $request)
 	{
-		return $this->service->update($entity);
+		
+		$valid=  Validator::make($request->all(), $this->validations);
+		if($valid->fails())
+		{
+			return redirect()
+			->back()
+			->withInput($request->all())
+			->withErrors($valid->errors());
+		}
+		$this->processRequestBeforeSaveOrUpdate($request);
+		$request->merge(['clientId'=>$clientId]);
+		$item=$this->service->update($id, $request->all());
+		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
+		$this->processResponseBeforeView($item);
+		return view($this->editViewName,compact('clientId','item'));
+	
 	}
 	
 	/**
@@ -86,12 +143,17 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function destroy($clientId, $id)
+	public function delete($clientId, $id, Request $request)
 	{
-		return $this->service->delete($id);
+		 $this->service->delete($id);
+		 $request->session()->flash('alert-success', 'Your '.$this->modelName.' deleted successfully!');
+		 return $this->index($clientId, $request);
 	}
 	
-	
-	
-	
+	protected $editViewName;
+	protected $viewViewName;
+	protected $searchViewName;
+	protected $modelName;
+	protected $validations;
+		
 }

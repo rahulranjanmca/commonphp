@@ -11,7 +11,7 @@ abstract class LaravelBaseController  extends Controller {
 	{
 		$this->service = $serviceInterface;
 	}
-	 
+	
 		
 	/**
 	 * Display a listing of the resource.
