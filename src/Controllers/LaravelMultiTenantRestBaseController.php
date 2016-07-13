@@ -2,8 +2,9 @@
 namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Canigenus\CommonPhp\Services\ServiceInterface;
 
-class LaravelRestBaseController  extends Controller {
+class LaravelMultiTenantRestBaseController  extends Controller {
 	
 	protected  $service;
 	
@@ -18,20 +19,11 @@ class LaravelRestBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index()
+	public function index(Request $request)
 	{
-	return $this->service->getList($criteria);
+	return $this->service->getList($request);
 	}
 	
-	/**
-	 * Show the form for creating a new resource.
-	 *
-	 * @return \Illuminate\Http\Response
-	 */
-	public function create()
-	{
-		return null;
-	}
 	
 	/**
 	 * Store a newly created resource in storage.
@@ -55,16 +47,7 @@ class LaravelRestBaseController  extends Controller {
 		return response($this->service->get($id));
 	}
 	
-	/**
-	 * Show the form for editing the specified resource.
-	 *
-	 * @param  int  $id
-	 * @return \Illuminate\Http\Response
-	 */
-	public function edit($id)
-	{
-		return $this->service->get($id);
-	}
+	
 	
 	/**
 	 * Update the specified resource in storage.
@@ -73,9 +56,9 @@ class LaravelRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function update(Request $request, $id)
+	public function update($id, $clientId, Request $request)
 	{
-		return $this->service->update($entity);
+		return response($this->service->update($id,$entity));
 	}
 	
 	/**

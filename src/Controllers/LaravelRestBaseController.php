@@ -2,14 +2,16 @@
 namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Canigenus\CommonPhp\Services\ServiceInterface;
 
 class LaravelRestBaseController  extends Controller {
 	
 	protected  $service;
 	
-	public function __construct(ServiceInterface $serviceInterface)
+	public function __construct(ServiceInterface $serviceInterface, $validations)
 	{
 		$this->service = $serviceInterface;
+		$this->validations=$validations;
 	}
 	
 		
@@ -18,19 +20,9 @@ class LaravelRestBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index()
+	public function index(Request $request)
 	{
 	return $this->service->getList($criteria);
-	}
-	
-	/**
-	 * Show the form for creating a new resource.
-	 *
-	 * @return \Illuminate\Http\Response
-	 */
-	public function create()
-	{
-		return null;
 	}
 	
 	/**
@@ -84,10 +76,10 @@ class LaravelRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function destroy($id)
+	public function destroy($clientId, $id)
 	{
 		return $this->service->delete($id);
 	}
 	
-	
+	protected $validations;
 }

@@ -94,7 +94,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	{
 		$item=$this->service->get($id);
 		$this->processResponseBeforeView($item);
-		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item'));
+		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
 	}
 	
 	/**
