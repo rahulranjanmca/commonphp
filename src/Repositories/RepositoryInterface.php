@@ -9,4 +9,5 @@ interface RepositoryInterface {
 	public function getEntityByKeyAndValue($field, $value, $columns = array('*'));
 	/* public function get($field, $value, $columns = array('*')); */
 	public function get($id);
+	public function getListForDropdown($criteria,$key, $value);
 } 

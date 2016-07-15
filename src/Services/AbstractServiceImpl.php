@@ -33,4 +33,8 @@ class AbstractServiceImpl implements ServiceInterface {
 	public function get($id){
 		return $this->repository->get($id);
 	}
+	
+	public function getListForDropdown($criteria,$key, $value){
+		return $this->repository->getListForDropdown($criteria,$key, $value);
+	}
 }

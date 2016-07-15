@@ -60,7 +60,12 @@ abstract class AbstractRepositoryImpl  implements RepositoryInterface {
 	 */
 	protected $scopes = array();
 	
-	
+	public function getListForDropdown($criteria,$key, $value){
+		$this->unsetClauses();
+		$this->newQuery();
+		$this->setCriteria($criteria);
+		return $this->query->lists($value,$key);
+	}
 	public function getList($criterias, $perPage = 15, $columns = array('*')) {
 		$this->unsetClauses();
 		$this->newQuery();

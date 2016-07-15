@@ -9,4 +9,5 @@ public function getList($criteria, $perPage = 15, $columns = array('*'));
 	public function getEntityByKeyAndValue($field, $value, $columns = array('*'));
 	/* public function get($field, $value, $columns = array('*')); */
 	public function get($id);
+	public function getListForDropdown($criteria,$key, $value);
 } 

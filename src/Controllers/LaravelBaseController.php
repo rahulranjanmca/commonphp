@@ -3,6 +3,8 @@ namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Canigenus\CommonPhp\Services\ServiceInterface;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
 
 abstract class LaravelBaseController  extends Controller {
 	
@@ -27,7 +29,8 @@ abstract class LaravelBaseController  extends Controller {
 	public function search(Request $request)
 	{
 		$searchCriteria=[];
-		return view($this->searchViewName,compact('searchCriteria'));
+		$pageVariables=$this->searchPageLoad($request);
+		return view($this->searchViewName,compact('searchCriteria','pageVariables'));
 	}
 	
 	/**
@@ -35,12 +38,13 @@ abstract class LaravelBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index($clientId, Request $request)
+	public function index(Request $request)
 	{
 		$items= $this->service->getList($request->all(),2);
 		$items->appends($request->except(array('page','clientId')));
 		$searchCriteria=$request->except(array('page','clientId'));
-		return view($this->searchViewName,compact('items','searchCriteria'));
+		$pageVariables=$this->searchPageLoad($request);
+		return view($this->searchViewName,compact('items','searchCriteria','pageVariables'));
 	}
 	
 	
@@ -49,9 +53,10 @@ abstract class LaravelBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function create($clientId)
+	public function create(Request $request)
 	{
-		return view($this->editViewName);
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('pageVariables'));
 	}
 	
 	
@@ -74,12 +79,19 @@ abstract class LaravelBaseController  extends Controller {
 		$this->processRequestBeforeSaveOrUpdate($request);
 		$this->service->save($request->all());
 		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
-		return view($this->editViewName);
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('pageVariables'));
 	}
 	
 	public function processRequestBeforeSaveOrUpdate(Request $request){
 	}
 	public function processResponseBeforeView(Model $response){
+	}
+	
+	public function searchPageLoad(Request $request){
+		
+	}
+	public function editPageLoad(Request $request){
 	}
 	
 	/**
@@ -101,11 +113,12 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function edit($id)
+	public function edit($id, Request $request)
 	{
 		$item=$this->service->get($id);
 		$this->processResponseBeforeView($item);
-		return view($this->editViewName, compact('item'));
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName, compact('item','pageVariables'));
 	}
 	
 	/**
@@ -129,7 +142,8 @@ abstract class LaravelBaseController  extends Controller {
 		$item=$this->service->update($id, $request->all());
 		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
 		$this->processResponseBeforeView($item);
-		return view($this->editViewName,compact('item'));
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('item','pageVariables'));
 	}
 	
 	/**
