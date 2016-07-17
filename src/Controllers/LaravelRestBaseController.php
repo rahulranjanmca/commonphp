@@ -3,6 +3,7 @@ namespace Canigenus\CommonPhp\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Canigenus\CommonPhp\Services\ServiceInterface;
+use Illuminate\Support\Facades\Validator;
 
 class LaravelRestBaseController  extends Controller {
 	
@@ -22,7 +23,7 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function index(Request $request)
 	{
-	return $this->service->getList($criteria);
+		return response( $this->service->getList($request));
 	}
 	
 	/**
@@ -33,6 +34,14 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function store(Request $request)
 	{
+		$valid=  Validator::make($request->all(),$this->validations);
+		if($valid->fails())
+		{
+			return response([
+					'message' => 'validation_faild',
+					'errors' => $valid->errors()
+			],400);
+		}
 		return response($this->service->save($request->all()),200);
 	}
 	
@@ -55,7 +64,7 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function edit($id)
 	{
-		return $this->service->get($id);
+		return response($this->service->get($id),200);
 	}
 	
 	/**
@@ -67,7 +76,15 @@ class LaravelRestBaseController  extends Controller {
 	 */
 	public function update(Request $request, $id)
 	{
-		return $this->service->update($entity);
+		$valid=  Validator::make($request->all(),$this->validations);
+		if($valid->fails())
+		{
+			return response([
+					'message' => 'validation_faild',
+					'errors' => $valid->errors()
+			],400);
+		}
+		return response($this->service->update($id,$request->all()),200);
 	}
 	
 	/**
@@ -76,9 +93,9 @@ class LaravelRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function destroy($clientId, $id)
+	public function delete($id)
 	{
-		return $this->service->delete($id);
+		return response($this->service->delete($id),200);
 	}
 	
 	protected $validations;
