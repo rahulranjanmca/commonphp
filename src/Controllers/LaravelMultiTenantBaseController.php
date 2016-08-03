@@ -8,18 +8,59 @@ use Illuminate\Support\Facades\Validator;
 
 abstract class LaravelMultiTenantBaseController  extends Controller {
 	
-	protected  $service;
 	
-	public function __construct(ServiceInterface $serviceInterface,$editViewName,$searchViewName,$modelName,$validations)
+	protected $service;
+	protected $userService;
+	protected $canBeUpdatedOnlyByOwner=false;
+	protected $showOnlyYourOwnData=false;
+	protected $isLoginRequired=true;
+	protected $needRoleAuthentication=true;	
+	protected $modelName;
+	protected $permissionModelName;
+	
+	public function __construct(ServiceInterface $serviceInterface,\App\Http\Services\ServiceInterface $userService, $editViewName,$searchViewName, $modelName, $validations, $permissionModelName)
 	{
 		$this->service = $serviceInterface;
 		$this-> editViewName=$editViewName;
 		$this-> searchViewName=$searchViewName;
 		$this-> modelName=$modelName;
+		$this-> permissionModelName=$permissionModelName;
 		$this-> validations=$validations;
 		$this->service = $serviceInterface;
+		$this->userService = $userService;
 	}
 	
+	
+	public function isAuthorized($clientId, $function, Request $request, $user, $data=null){
+		if(!$user->getAttribute('admin') && $clientId!=$user->getAttribute('client_id'))
+		{
+			return false;
+		}
+		if((!$user->getAttribute('admin') && $data!=null) && ($clientId!=$user->getAttribute('client_id') || $data->getAttribute('client_id')!=$user->getAttribute('client_id')))
+		{
+			return false;
+		}
+		if($this->needRoleAuthentication && !$user->getAttribute('admin') && $clientId!=$user->getAttribute('client_id')){
+			if(!in_array($this->modelName.'_'.$function,$request->session()->get("permissions")))
+			{
+				return false;
+			}
+		}
+	
+		if($this->canBeUpdatedOnlyByOwner && $data!=null && $data->getAttribute('user_id')!=$user->getAttribute('id'))
+		{
+			return false;
+		}
+		if(!$this->isAuthrizedExtra($clientId, $function, $request,  $user, $data=null)){
+			return false;
+		}
+		return true;
+	}
+	
+	protected function isAuthrizedExtra($clientId, $function, Request $request,  $user, $data=null)
+	{
+		return true;
+	}
 	/**
 	 * Display a listing of the resource.
 	 *
@@ -39,11 +80,32 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function index($clientId, Request $request)
 	{
-	$request->merge(['clientId'=>$clientId]);
-	$items= $this->service->getList($request->all(),2);
-	$items->appends($request->except(array('page','clientId')));
-	$searchCriteria=$request->except(array('page','clientId'));
-	return view($this->searchViewName,compact('items','clientId','searchCriteria'));
+
+		if($this->isLoginRequired)
+		{
+			$user =$this->$request->session()->get("userDetails");
+			if($this->isAuthorized($clientId,'view',$request,$user))
+			{
+				if(!$user->getAttribute('admin'))
+				{
+					$request->merge(['user_id'=>$clientId]);
+				}
+				if(!$user->getAttribute('admin') && !$user->getAttribute('client_admin') && $this->showOnlyYourOwnData){
+					$request->merge(['user_id'=>$user->getAttribute("id")]);
+				}
+				$items->appends($request->except(array('page','clientId')));
+				$searchCriteria=$request->except(array('page','clientId'));
+				return view($this->searchViewName,compact('items','clientId','searchCriteria'));
+			}
+			else{
+				return response(null, 401);
+			}
+		}
+		else{
+				$items->appends($request->except(array('page','clientId')));
+				$searchCriteria=$request->except(array('page','clientId'));
+				return view($this->searchViewName,compact('items','clientId','searchCriteria'));
+		}
 	}
 	
 	/**
@@ -64,7 +126,9 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function store($clientId, Request $request)
 	{
-		$valid=  Validator::make($request->all(), $this->validations);
+		if($this->isLoginRequired)
+		{
+		$valid=  Validator::make($request->all(),$this->validations);
 		if($valid->fails())
 		{
 			return redirect()
@@ -72,11 +136,28 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 			->withInput($request->all())
 			->withErrors($valid->errors());
 		}
+		$user =$request->session()->get("userDetails");
+		if($this->isAuthorized($clientId,'create',$request,$user))
+		{
+			$this->processRequestBeforeSaveOrUpdate($request);
+			$request->merge(['client_id'=>$clientId, 'created_by'=>$user->getAttribute("id"), 'updated_by'=>$user->getAttribute("id")]);
+			$item=$this->service->save($request->all());
+			$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
+			$pageVariables=$this->editPageLoad($request);
+			return view($this->editViewName, compact("clientId","pageVariables","item"));
+		}
+		else{
+		return response(null, 401);
+		}
+		}
+		else{
 		$this->processRequestBeforeSaveOrUpdate($request);
 		$request->merge(['clientId'=>$clientId]);
-		$this->service->save($request->all());
+		$item=$this->service->save($request->all());
 		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
-		return view($this->editViewName, compact("clientId"));
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName, compact("clientId","pageVariables","item"));
+		}
 	}
 	
 	public function processRequestBeforeSaveOrUpdate(Request $request){
@@ -92,9 +173,43 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function show($clientId, $id)
 	{
+		if($this->isLoginRequired)
+		{
+		$user =$request->session()->get("userDetails");
+		$response=$this->service->get($id);
+		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
+	
+		if($this->showOnlyYourOwnData && !$user->getAttribute('admin') && !$user->getAttribute('client_admin')){
+				$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
+		}
+		else if($this->showOnlyYourOwnData && $response->getAttribute('user_id')==$user->getAttribute('id')){
+			$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
+		}
+		else if(!$this->showOnlyYourOwnData)
+		{
+			$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
+		}
+		else{
+			return response(null,401);
+		}
+		}
+		else{
+			return response(null,401);
+		}
+		}
+		else{
 		$item=$this->service->get($id);
 		$this->processResponseBeforeView($item);
 		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
+		}
+	
+		
 	}
 	
 	/**
@@ -105,9 +220,45 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function edit($clientId, $id)
 	{
+		if($this->isLoginRequired)
+		{
+		$user =$request->session()->get("userDetails");
+		$response=$this->service->get($id);
+		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
+	
+		if($this->showOnlyYourOwnData && !$user->getAttribute('admin') && !$user->getAttribute('client_admin')){
+				$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('item','clientId','pageVariables'));
+		}
+		else if($this->showOnlyYourOwnData && $response->getAttribute('user_id')==$user->getAttribute('id')){
+			$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('item','clientId','pageVariables'));
+		}
+		else if(!$this->showOnlyYourOwnData)
+		{
+			$item=$this->service->get($id);
+		$this->processResponseBeforeView($item);
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('item','clientId','pageVariables'));
+		}
+		else{
+			return response(null,401);
+		}
+		}
+		else{
+			return response(null,401);
+		}
+		}
+		else{
 		$item=$this->service->get($id);
 		$this->processResponseBeforeView($item);
-		return view($this->editViewName, compact('item', 'clientId'));
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('item','clientId','pageVariables'));
+		}
 	}
 	
 	/**
@@ -119,8 +270,8 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function update($clientId,$id, Request $request)
 	{
-		
-		$valid=  Validator::make($request->all(), $this->validations);
+
+		$valid=  Validator::make($request->all(),$this->validations);
 		if($valid->fails())
 		{
 			return redirect()
@@ -128,13 +279,33 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 			->withInput($request->all())
 			->withErrors($valid->errors());
 		}
+		if($this->isLoginRequired)
+		{
+			$user =$request->session()->get("userDetails");
+			$data =$this->service->get($id);
+			if($this->isAuthorized($clientId, 'update',$request,  $user,$data ))
+			{
+					$this->processRequestBeforeSaveOrUpdate($request);
+					$request->merge(['clientId'=>$clientId]);
+					$item=$this->service->update($id, $request->all());
+					$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
+					$this->processResponseBeforeView($item);
+					$pageVariables=$this->editPageLoad($request);
+		         return view($this->editViewName,compact('clientId','item','pageVariables'));
+			}
+			else{
+				return response(null, 401);
+			}
+		}
+		else{
 		$this->processRequestBeforeSaveOrUpdate($request);
 		$request->merge(['clientId'=>$clientId]);
 		$item=$this->service->update($id, $request->all());
 		$request->session()->flash('alert-success', 'Your '.$this->modelName.' saved successfully!');
 		$this->processResponseBeforeView($item);
-		return view($this->editViewName,compact('clientId','item'));
-	
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('clientId','item','pageVariables'));
+		}	
 	}
 	
 	/**
@@ -145,9 +316,26 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function delete($clientId, $id, Request $request)
 	{
+
+		if($this->isLoginRequired)
+		{
+			$user =$request->session()->get("userDetails");
+			$data=$this->service->get($id);
+			if($this->isAuthorized($clientId, 'delete', $request,  $user,$data ))
+			{
+				 $this->service->delete($id);
+				 $request->session()->flash('alert-success', 'Your '.$this->modelName.' deleted successfully!');
+			 	return $this->index($clientId, $request);
+			}
+			else{
+				return response(null, 401);
+			}
+		}
+		else{
 		 $this->service->delete($id);
 		 $request->session()->flash('alert-success', 'Your '.$this->modelName.' deleted successfully!');
 		 return $this->index($clientId, $request);
+		}
 	}
 	
 	protected $editViewName;

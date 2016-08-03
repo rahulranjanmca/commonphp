@@ -12,6 +12,7 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	protected $userService;
 	protected $canBeUpdatedOnlyByOwner=false;
 	protected $showOnlyYourOwnData=false;
+	protected $isLoginRequired=true;
 	protected $needRoleAuthentication=true;	
 	protected $modelName;
 	
@@ -36,7 +37,7 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		{
 			return false;
 		}
-		if($this->needRoleAuthentication){
+		if($this->needRoleAuthentication && !$user->getAttribute('admin') && $clientId!=$user->getAttribute('client_id')){
 			if(!in_array($this->modelName.'_'.$function,$this->userService->getPermissionsByUserId(Authorizer::getResourceOwnerId())))
 			{
 				return false;
@@ -65,6 +66,8 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 */
 	public function index($clientId, Request $request)
 	{ 
+		if($this->isLoginRequired)
+		{
 		$user =$this->userService->get(Authorizer::getResourceOwnerId());
 		if($this->isAuthorized($clientId,'view',$request,$user))
 		{
@@ -79,7 +82,11 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		}
 		else{
 			return response(null, 401);
-		}	
+		}
+		}
+		else{
+			return response($this->service->getList($request));
+		}
 	}
 	
 	/**
@@ -90,8 +97,8 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 */
 	public function store($clientId, Request $request)
 	{
-		
-		
+		if($this->isLoginRequired)
+		{
 		$valid=  Validator::make($request->all(),$this->validations);
 		if($valid->fails())
 		{
@@ -109,6 +116,10 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		else{
 		return response(null, 401);
 		}
+		}
+		else{
+		return response($this->service->save($request->all()),200);
+		}
 		
 	}
 	
@@ -120,7 +131,8 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 */
 	public function show($clientId, $id, Request $request)
 	{
-		
+		if($this->isLoginRequired)
+		{
 		$user =$this->userService->get(Authorizer::getResourceOwnerId());
 		$response=$this->service->get($id);
 		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
@@ -142,7 +154,10 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		else{
 			return response(null,401);
 		}
-		
+		}
+		else{
+			return response($response);
+		}
 	}
 	
 	
@@ -163,6 +178,8 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 					'errors' => $valid->errors()
 			],400);
 		}
+		if($this->isLoginRequired)
+		{
 		$user =$this->userService->get(Authorizer::getResourceOwnerId());
 		$data =$this->service->get($id);
 		if($this->isAuthorized($clientId, 'update',$request,  $user,$data ))
@@ -174,6 +191,14 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		else{
 			return response(null, 401);
 		}
+		}
+		else{
+			$request->merge(['client_id'=>$clientId, 'updated_by'=>Authorizer::getResourceOwnerId()]);
+			$response=$this->service->update($id,$request->all());
+			return response($response);
+		}
+		
+		
 	}
 	
 	/**
@@ -184,6 +209,8 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 */
 	public function destroy($clientId, $id,  Request $request)
 	{
+		if($this->isLoginRequired)
+		{
 		$user =$this->userService->get(Authorizer::getResourceOwnerId());
 		$data=$this->service->get($id);
 		
@@ -194,6 +221,11 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 		}
 		else{
 			return response(null, 401);
+		}
+		}
+		else{
+			$this->service->delete($id);
+			return response(null,200);
 		}
 	}
 	
