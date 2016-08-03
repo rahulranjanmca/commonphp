@@ -6,11 +6,55 @@ use Canigenus\CommonPhp\Services\ServiceInterface;
 
 class LaravelMultiTenantRestBaseController  extends Controller {
 	
-	protected  $service;
 	
-	public function __construct(ServiceInterface $serviceInterface)
+	
+	protected $service;
+	protected $userService;
+	protected $canBeUpdatedOnlyByOwner=false;
+	protected $showOnlyYourOwnData=false;
+	protected $needRoleAuthentication=true;	
+	protected $modelName;
+	
+	public function __construct(\App\Http\Services\ServiceInterface $serviceInterface, \App\Http\Services\ServiceInterface $userServiceInterface, $validations, $modelName)
 	{
 		$this->service = $serviceInterface;
+		$this->userService=$userServiceInterface;
+		$this->validations=$validations;
+		$this->modelName=$modelName;
+	}
+	
+	public function isAuthorized($clientId, $function, Request $request,  $user=null, $data=null){
+		if($user==null)
+		{
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		}
+		if(!$user->getAttribute('admin') && $clientId!=$user->getAttribute('client_id'))
+		{
+			return false;
+		}
+		if((!$user->getAttribute('admin') && $data!=null) && ($clientId!=$user->getAttribute('client_id') || $data->getAttribute('client_id')!=$user->getAttribute('client_id')))
+		{
+			return false;
+		}
+		if($this->needRoleAuthentication){
+			if(!in_array($this->modelName.'_'.$function,$this->userService->getPermissionsByUserId(Authorizer::getResourceOwnerId())))
+			{
+				return false;
+			}
+		}
+	
+		if($this->canBeUpdatedOnlyByOwner && $data!=null && $data->getAttribute('user_id')!=$user->getAttribute('id'))
+		{
+			return false;
+		}
+		if(!$this->isAuthrizedExtra($clientId, $function, $request,  $user=null, $data=null)){
+			return false;
+		}
+		return true;
+	}
+	protected function isAuthrizedExtra($clientId, $function, Request $request,  $user=null, $data=null)
+	{
+		return true;
 	}
 	
 		
@@ -19,11 +63,24 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function index(Request $request)
-	{
-	return $this->service->getList($request);
+	public function index($clientId, Request $request)
+	{ 
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		if($this->isAuthorized($clientId,'view',$request,$user))
+		{
+			if(!$user->getAttribute('admin'))
+			{
+				$request->merge(['user_id'=>$clientId]);
+			}
+			if(!$user->getAttribute('admin') && !$user->getAttribute('client_admin') && $this->showOnlyYourOwnData){
+				$request->merge(['user_id'=>Authorizer::getResourceOwnerId()]);
+			}
+			return response($this->service->getList($request));
+		}
+		else{
+			return response(null, 401);
+		}	
 	}
-	
 	
 	/**
 	 * Store a newly created resource in storage.
@@ -31,9 +88,28 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 * @param  \Illuminate\Http\Request  $request
 	 * @return \Illuminate\Http\Response
 	 */
-	public function store(Request $request)
+	public function store($clientId, Request $request)
 	{
-		return response($this->service->save($request->all()),200);
+		
+		
+		$valid=  Validator::make($request->all(),$this->validations);
+		if($valid->fails())
+		{
+			return response([
+					'message' => 'validation_faild',
+					'errors' => $valid->errors()
+			],400);
+		}
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		if($this->isAuthorized($clientId,'create',$request,$user))
+		{
+			$request->merge(['client_id'=>$clientId, 'created_by'=>Authorizer::getResourceOwnerId(), 'updated_by'=>Authorizer::getResourceOwnerId()]);
+			return response($this->service->save($request->all()),200);
+		}
+		else{
+		return response(null, 401);
+		}
+		
 	}
 	
 	/**
@@ -42,11 +118,32 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function show($id)
+	public function show($clientId, $id, Request $request)
 	{
-		return response($this->service->get($id));
-	}
+		
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		$response=$this->service->get($id);
+		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
 	
+		if($this->showOnlyYourOwnData && !$user->getAttribute('admin') && !$user->getAttribute('client_admin')){
+				return response($response); 
+		}
+		else if($this->showOnlyYourOwnData && $response->getAttribute('user_id')==$user->getAttribute('id')){
+			return response($response);
+		}
+		else if(!$this->showOnlyYourOwnData)
+		{
+			return response($response);
+		}
+		else{
+			return response(null,401);
+		}
+		}
+		else{
+			return response(null,401);
+		}
+		
+	}
 	
 	
 	/**
@@ -56,9 +153,27 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function update($id, $clientId, Request $request)
+	public function update($clientId,  $id, Request $request)
 	{
-		return response($this->service->update($id,$entity));
+		$valid=  Validator::make($request->all(),$this->validations);
+		if($valid->fails())
+		{
+			return response([
+					'message' => 'validation_faild',
+					'errors' => $valid->errors()
+			],400);
+		}
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		$data =$this->service->get($id);
+		if($this->isAuthorized($clientId, 'update',$request,  $user,$data ))
+		{
+			$request->merge(['client_id'=>$clientId, 'updated_by'=>Authorizer::getResourceOwnerId()]);
+			$response=$this->service->update($id,$request->all());
+			return response($response);
+		}
+		else{
+			return response(null, 401);
+		}
 	}
 	
 	/**
@@ -67,10 +182,22 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function destroy($id)
+	public function destroy($clientId, $id,  Request $request)
 	{
-		return $this->service->delete($id);
+		$user =$this->userService->get(Authorizer::getResourceOwnerId());
+		$data=$this->service->get($id);
+		
+		if($this->isAuthorized($clientId, 'delete', $request,  $user,$data ))
+		{
+			$this->service->delete($id);
+			return response(null,200);
+		}
+		else{
+			return response(null, 401);
+		}
 	}
+	
+	protected $validations;
 	
 	
 }
