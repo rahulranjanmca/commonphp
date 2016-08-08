@@ -73,7 +73,9 @@ abstract class LaravelBaseController  extends Controller {
 	{
 		if($this->isLoginRequired && !$this->viewNoRistriction)
 		{
-			$user =$this->$request->session()->get("userDetails");
+			$user =$request->session()->get("userDetails");
+			if($user==null)
+				return response(null, 401);
 			if($this->isAuthorized('view',$request,$user))
 			{
 				$items= $this->service->getList($request->all(),15);
@@ -287,7 +289,7 @@ abstract class LaravelBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-    public function delete($id, Request $request)
+    public function destroy($id, Request $request)
 	{
 		if($this->isLoginRequired)
 		{
@@ -313,7 +315,6 @@ abstract class LaravelBaseController  extends Controller {
 	protected $editViewName;
 	protected $viewViewName;
 	protected $searchViewName;
-	protected $modelName;
 	protected $validations;
 	
 	
