@@ -151,15 +151,6 @@ abstract class LaravelBaseController  extends Controller {
 			$pageVariables=$this->editPageLoad($request);
 			return view($this->editViewName, compact("pageVariables"));
 		}
-		
-		$valid=  Validator::make($request->all(), $this->validations);
-		if($valid->fails())
-		{
-			return redirect()
-			->back()
-			->withInput($request->all())
-			->withErrors($valid->errors());
-		}
 	}
 	
 	public function processRequestBeforeSaveOrUpdate(Request $request){
