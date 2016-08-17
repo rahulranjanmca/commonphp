@@ -16,7 +16,7 @@ class LaravelMultiTenantRestBaseController  extends Controller {
 	protected $needRoleAuthentication=true;	
 	protected $modelName;
 	
-	public function __construct(\App\Http\Services\ServiceInterface $serviceInterface, \App\Http\Services\ServiceInterface $userServiceInterface, $validations, $modelName)
+	public function __construct(ServiceInterface $serviceInterface, ServiceInterface $userServiceInterface, $validations, $modelName)
 	{
 		$this->service = $serviceInterface;
 		$this->userService=$userServiceInterface;

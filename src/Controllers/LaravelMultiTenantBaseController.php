@@ -18,7 +18,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	protected $modelName;
 	protected $permissionModelName;
 	
-	public function __construct(ServiceInterface $serviceInterface,\App\Http\Services\ServiceInterface $userService, $editViewName,$searchViewName, $modelName, $validations, $permissionModelName)
+	public function __construct(ServiceInterface $serviceInterface, ServiceInterface $userService, $editViewName,$searchViewName, $modelName, $validations, $permissionModelName)
 	{
 		$this->service = $serviceInterface;
 		$this-> editViewName=$editViewName;
@@ -83,25 +83,33 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 
 		if($this->isLoginRequired)
 		{
-			$user =$this->$request->session()->get("userDetails");
+			$user =$request->session()->get("userDetails");
+			if($user==null)
+				return redirect('admin.mlogin', compact("clientId"));
 			if($this->isAuthorized($clientId,'view',$request,$user))
 			{
 				if(!$user->getAttribute('admin'))
 				{
-					$request->merge(['user_id'=>$clientId]);
+					$request->merge(['client_id'=>$clientId]);
 				}
 				if(!$user->getAttribute('admin') && !$user->getAttribute('client_admin') && $this->showOnlyYourOwnData){
 					$request->merge(['user_id'=>$user->getAttribute("id")]);
 				}
+				$items= $this->service->getList($request->all(),15);
 				$items->appends($request->except(array('page','clientId')));
 				$searchCriteria=$request->except(array('page','clientId'));
 				return view($this->searchViewName,compact('items','clientId','searchCriteria'));
 			}
 			else{
-				return response(null, 401);
+				return view("admin.notauthorized");
 			}
 		}
 		else{
+				if(!$user->getAttribute('admin'))
+				{
+					$request->merge(['client_id'=>$clientId]);
+				}
+			    $items= $this->service->getList($request->all(),15);
 				$items->appends($request->except(array('page','clientId')));
 				$searchCriteria=$request->except(array('page','clientId'));
 				return view($this->searchViewName,compact('items','clientId','searchCriteria'));
@@ -115,7 +123,8 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 */
 	public function create($clientId)
 	{
-		return view($this->editViewName,compact('clientId'));
+		$pageVariables=$this->editPageLoad($request);
+		return view($this->editViewName,compact('clientId','pageVariables'));
 	}
 	
 	/**
@@ -128,6 +137,9 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	{
 		if($this->isLoginRequired)
 		{
+		$user =$request->session()->get("userDetails");
+		if($user==null)
+				return redirect('admin.mlogin', compact("clientId"));
 		$valid=  Validator::make($request->all(),$this->validations);
 		if($valid->fails())
 		{
@@ -136,7 +148,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 			->withInput($request->all())
 			->withErrors($valid->errors());
 		}
-		$user =$request->session()->get("userDetails");
+		
 		if($this->isAuthorized($clientId,'create',$request,$user))
 		{
 			$this->processRequestBeforeSaveOrUpdate($request);
@@ -147,7 +159,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 			return view($this->editViewName, compact("clientId","pageVariables","item"));
 		}
 		else{
-		return response(null, 401);
+		return view("admin.notauthorized");
 		}
 		}
 		else{
@@ -165,17 +177,24 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	public function processResponseBeforeView(Model $response){
 	}
 	
+	public function searchPageLoad(Request $request){
+	}
+	public function editPageLoad(Request $request){
+	}
+	
 	/**
 	 * Display the specified resource.
 	 *
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function show($clientId, $id)
+	public function show($clientId, $id, Request $request)
 	{
 		if($this->isLoginRequired)
 		{
 		$user =$request->session()->get("userDetails");
+		if($user==null)
+			return redirect('admin.mlogin', compact("clientId"));
 		$response=$this->service->get($id);
 		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
 	
@@ -196,11 +215,11 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 		return view(isset($this->viewViewName)?$this->viewViewName:$this->editViewName,compact('item','clientId'));
 		}
 		else{
-			return response(null,401);
+			return view("admin.notauthorized");
 		}
 		}
 		else{
-			return response(null,401);
+			return view("admin.notauthorized");
 		}
 		}
 		else{
@@ -218,11 +237,13 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 * @param  int  $id
 	 * @return \Illuminate\Http\Response
 	 */
-	public function edit($clientId, $id)
+	public function edit($clientId, $id,Request $request)
 	{
 		if($this->isLoginRequired)
 		{
 		$user =$request->session()->get("userDetails");
+		if($user==null)
+			return redirect('admin.mlogin', compact("clientId"));
 		$response=$this->service->get($id);
 		if($this->isAuthorized($clientId, 'view',$request, $user,$response)){
 	
@@ -246,11 +267,11 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 		return view($this->editViewName,compact('item','clientId','pageVariables'));
 		}
 		else{
-			return response(null,401);
+			return view("admin.notauthorized");
 		}
 		}
 		else{
-			return response(null,401);
+			return view("admin.notauthorized");
 		}
 		}
 		else{
@@ -282,6 +303,8 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 		if($this->isLoginRequired)
 		{
 			$user =$request->session()->get("userDetails");
+			if($user==null)
+				return redirect('admin.mlogin', compact("clientId"));
 			$data =$this->service->get($id);
 			if($this->isAuthorized($clientId, 'update',$request,  $user,$data ))
 			{
@@ -294,7 +317,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 		         return view($this->editViewName,compact('clientId','item','pageVariables'));
 			}
 			else{
-				return response(null, 401);
+				return view("admin.notauthorized");
 			}
 		}
 		else{
@@ -320,6 +343,8 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 		if($this->isLoginRequired)
 		{
 			$user =$request->session()->get("userDetails");
+			if($user==null)
+				return redirect('admin.mlogin', compact("clientId"));
 			$data=$this->service->get($id);
 			if($this->isAuthorized($clientId, 'delete', $request,  $user,$data ))
 			{
@@ -328,7 +353,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 			 	return $this->index($clientId, $request);
 			}
 			else{
-				return response(null, 401);
+				return view("admin.notauthorized");
 			}
 		}
 		else{
@@ -341,7 +366,6 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	protected $editViewName;
 	protected $viewViewName;
 	protected $searchViewName;
-	protected $modelName;
 	protected $validations;
 		
 }
