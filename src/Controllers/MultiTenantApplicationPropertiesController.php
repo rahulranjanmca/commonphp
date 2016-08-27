@@ -1,10 +1,11 @@
 <?php
 namespace Canigenus\CommonPhp\Controllers;
 
-use Canigenus\CommonPhp\Services\ApplicationPropertiesService;
+use Canigenus\CommonPhp\Controllers\LaravelMultiTenantBaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-class ApplicationPropertiesController extends LaravelBaseController
+use Canigenus\CommonPhp\Services\ApplicationPropertiesService;
+class ApplicationPropertiesController extends LaravelMultiTenantBaseController
 {
 	public function __construct(ApplicationPropertiesService $serviceInterface)
 	{
@@ -15,7 +16,7 @@ class ApplicationPropertiesController extends LaravelBaseController
 	}
 	
 	
-	public function update($id, Request $request)
+	public function update($clientId, $id, Request $request)
 	{
 		
 	$view=parent::update($request, $id);
