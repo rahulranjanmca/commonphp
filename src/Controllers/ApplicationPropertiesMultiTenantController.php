@@ -20,7 +20,7 @@ class ApplicationPropertiesMultiTenantController extends LaravelMultiTenantBaseC
 	{
 		
 	$view=parent::update($request, $id);
-	Cache::forever($clientId.'-'.$view->getData()['item']->key, $view->getData()['item']->value);
+	Cache::forever($view->getData()['item']->key, $view->getData()['item']->value);
 	return $view;
 	}
 }
