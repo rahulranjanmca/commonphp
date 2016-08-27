@@ -121,7 +121,7 @@ abstract class LaravelMultiTenantBaseController  extends Controller {
 	 *
 	 * @return \Illuminate\Http\Response
 	 */
-	public function create($clientId)
+	public function create($clientId, Request $request)
 	{
 		$pageVariables=$this->editPageLoad($request);
 		return view($this->editViewName,compact('clientId','pageVariables'));
