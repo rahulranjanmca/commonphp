@@ -5,7 +5,7 @@ use Canigenus\CommonPhp\Controllers\LaravelMultiTenantBaseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Canigenus\CommonPhp\Services\ApplicationPropertiesService;
-class ApplicationPropertiesController extends LaravelMultiTenantBaseController
+class ApplicationPropertiesMultiTenantController extends LaravelMultiTenantBaseController
 {
 	public function __construct(ApplicationPropertiesService $serviceInterface)
 	{
