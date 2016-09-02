@@ -2,7 +2,6 @@
 
 namespace Canigenus\CommonPhp\Controllers;
 
-use App\Http\Services\WebsiteSettingService;
 use Canigenus\CommonPhp\Controllers\LaravelMultiTenantBaseController;
 use Canigenus\CommonPhp\Services\UserServiceInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Canigenus\CommonPhp\Services\WebsiteSettingService;
 
 class WebsiteSettingController extends LaravelMultiTenantBaseController {
 	public function __construct(WebsiteSettingService $websiteSettingService, UserServiceInterface $userService) {
@@ -53,10 +53,13 @@ class WebsiteSettingController extends LaravelMultiTenantBaseController {
 			->withErrors($valid->errors());
 		}
 		    $file= $request->file('logo');
+		    if($file!=null)
+		    {
 		    $extension = $file->getClientOriginalExtension();
 		    $path= 'public/'.$clientId.'/logo/'.$file->getFilename().'.'.$extension;
 		    Storage::disk('local')->put($path,  File::get($file));
 		    $request->merge(['logo_path'=>$path]);
+		    }
 			$user =$request->session()->get("userDetails");
 			$data =$this->service->get($id);
 			if($this->isAuthorized($clientId,'update',$request,  $user,$data ))

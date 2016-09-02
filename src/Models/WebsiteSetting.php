@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WebsiteSetting extends Model {
 	protected $fillable = [ 
+			"code",
 			"name",
 			"logo_path",
 			"client_id",

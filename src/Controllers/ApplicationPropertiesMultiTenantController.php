@@ -9,7 +9,7 @@ class ApplicationPropertiesMultiTenantController extends LaravelMultiTenantBaseC
 {
 	public function __construct(ApplicationPropertiesService $serviceInterface)
 	{
-		parent::__construct($serviceInterface,'admin.properties_edit','admin.properties_list', "Application Properties",  [
+		parent::__construct($serviceInterface,'admin.mproperties_edit','admin.mproperties_list', "Application Properties",  [
 				'key' => 'required|max:255',
 				'value' => 'required'
 		], 'applicationproperties');

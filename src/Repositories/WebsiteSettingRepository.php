@@ -13,11 +13,11 @@ class WebsiteSettingRepository extends AbstractRepositoryImpl {
 		$this->model = $revSharePlan;
 	}
 	public function setCriteria($criterias) {
-				
-			if (!empty($criterias['name'])) {
-				$this->query->where ( 'name', $criterias['name'] );
+			if (!empty($criterias['code'])) {
+				$this->query->where ( 'code', $criterias['code'] );
 		     }
-		    
-		   
+		     if (!empty($criterias['clientId'])) {
+		     	$this->query->where ( 'id', $criterias['clientId'] );
+		     }
 	}
 }

@@ -1,5 +1,5 @@
 <?php
-namespace  Canigenus\Login\ServiceProviders;
+namespace  Canigenus\CommonPhp\ServiceProviders;
 
 use Illuminate\Support\ServiceProvider;
 
@@ -7,7 +7,7 @@ class CommonServiceProvider extends ServiceProvider
 {
 	public function boot()
 	{
-		$this->app->router->group(['namespace' => 'Canigenus\Login\Controllers'],
+		$this->app->router->group(['namespace' => 'Canigenus\CommonPhp\Controllers'],
 				function(){
 					
 					$value = config('app.canigenus_multitenant');
